@@ -1,6 +1,6 @@
 [package]
 name            = "librepology"
-version         = "0.1.0"
+version         = "0.1.0-alpha.1"
 authors         = ["Matthias Beyer <matthias.beyer@atos.net>"]
 edition         = "2018"
 description     = "Library for repology.org API access"
