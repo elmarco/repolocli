@@ -7,6 +7,7 @@ extern crate flexi_logger;
 extern crate filters;
 extern crate boolinator;
 extern crate itertools;
+extern crate rustbreak;
 
 #[cfg(feature = "compare_csv")]
 extern crate csv;
@@ -16,6 +17,7 @@ extern crate csv;
 #[macro_use] extern crate failure;
 #[macro_use] extern crate prettytable;
 
+mod db;
 mod config;
 mod backend;
 mod frontend;
@@ -36,6 +38,7 @@ use filters::filter::Filter;
 use boolinator::Boolinator;
 use itertools::Itertools;
 
+use db::Database;
 use config::Configuration;
 use compare::ComparePackage;
 use librepology::v1::api::Api;
