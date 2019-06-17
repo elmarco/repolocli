@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::ops::Deref;
 
 use rustbreak::{FileDatabase, deser::Yaml};
@@ -11,7 +12,7 @@ use crate::backend::Backend;
 use librepology::v1::types::Package;
 use librepology::v1::api::Api;
 
-pub struct Database(FileDatabase<HashMap<String, Vec<String>>, Yaml>);
+pub struct Database(FileDatabase<HashMap<String, HashSet<String>>, Yaml>);
 
 impl Database {
     pub fn open(path: PathBuf) -> Result<Self, Error> {
@@ -42,41 +43,34 @@ impl Database {
         package_names
             .into_iter()
             .map(|pkgname| {
-                let known_versions = self.0
+                let mut known_versions = self.0
                     .read(|data|{
-                        if let Some(v) = data.get(&pkgname).map(Vec::clone) {
+                        if let Some(v) = data.get(&pkgname).map(HashSet::clone) {
                             v
                         } else {
-                            vec![]
+                            HashSet::new()
                         }
                     })?;
 
                 debug!("Known versions for {}: {:?}", pkgname, known_versions);
 
-                let new_upstream_packages : Vec<Package> = backend
+                backend
                     .project(&pkgname)?
                     .into_iter()
-                    .filter(|pkg| !known_versions.contains(pkg.version().deref()))
-                    .collect();
-
-                debug!("Found {} new upstream packages for {}", new_upstream_packages.len(), pkgname);
+                    .for_each(|pkg| {
+                        known_versions.insert(pkg.version().to_string());
+                    });
 
                 if commit {
                     self.0
                         .write(|data| {
-                            let mut new_versions = new_upstream_packages
-                                .iter()
-                                .map(|pkg| pkg.version().to_string())
-                                .collect();
-                            data.entry(pkgname).or_insert(vec![])
-                                .append(&mut new_versions);
+                            data.insert(pkgname.clone(), known_versions.clone());
                         })?;
                 }
 
                 debug!("Listing...");
-                frontend.list_packages(new_upstream_packages)?;
-
-                Ok(())
+                let new_package_versions = known_versions.into_iter().collect();
+                frontend.list_package_versions(&pkgname, new_package_versions)
             })
             .collect::<Result<(), Error>>();
 
@@ -88,21 +82,14 @@ impl Database {
     }
 
     pub fn show(&self, frontend: &Frontend, backend: &Backend) -> Result<(), Error> {
-        let packages = self.0
-            .read(|d| d.keys().cloned().collect::<Vec<String>>())?
-            .iter()
-            .map(|name| {debug!("Found: {}", name); name})
-            .map(|name| backend.project(name))
-            .collect::<Vec<Result<_, _>>>() // ugly as
-            .into_iter()
-            .collect::<Result<Vec<Vec<_>>, _>>()? // hell!
-            .into_iter()
-            .flatten()
-            .collect();
-
-        debug!("Listing the following packages: {:?}", packages);
-
-        frontend.list_packages(packages)
+        self.0
+            .read(|data| {
+                data.iter()
+                    .map(|(pkgname, versions)| {
+                        frontend.list_package_versions(pkgname, versions.into_iter().map(String::clone).collect())
+                    })
+                    .collect::<Result<_, _>>()
+            })?
     }
 
     pub fn add_package(&mut self, package_name: &str, backend: &Backend) -> Result<(), Error> {
@@ -117,7 +104,7 @@ impl Database {
 
         self.0
             .write(|data| {
-                data.entry(String::from(package_name)).or_insert(vec![]).append(&mut versions)
+                data.insert(String::from(package_name), versions)
             })?;
 
         self.0.save().map_err(Error::from)
