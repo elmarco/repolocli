@@ -15,6 +15,8 @@ pub trait Frontend {
     fn list_packages(&self, packages: Vec<Package>) -> Result<()>;
     fn list_problems(&self, problems: Vec<Problem>) -> Result<()>;
     fn compare_packages(&self, packages: Vec<ComparePackage>, backend: &Backend, filter_repos: Vec<Repo>) -> Result<()>;
+
+    fn list_package_versions(&self, package_name: &str, versions: Vec<String>) -> Result<()>;
 }
 
 pub mod list;

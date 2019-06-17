@@ -97,5 +97,15 @@ impl Frontend for ListFrontend {
 
         Ok(())
     }
+
+    fn list_package_versions(&self, package_name: &str, versions: Vec<String>) -> Result<()> {
+        let mut output = self.0.lock();
+
+        for version in versions {
+            let _ = writeln!(output, "{} - {}", package_name, version)?;
+        }
+
+        Ok(())
+    }
 }
 

@@ -84,5 +84,20 @@ impl Frontend for JsonFrontend {
 
         self.write(serde_json::ser::to_string_pretty(&output)?)
     }
+
+    fn list_package_versions(&self, package_name: &str, versions: Vec<String>) -> Result<()> {
+        #[derive(Serialize)]
+        struct Listing<'a> {
+            name: &'a str,
+            versions: Vec<String>,
+        }
+
+        let listing = Listing {
+            name: package_name,
+            versions,
+        };
+
+        self.write(serde_json::ser::to_string_pretty(&listing).map_err(Error::from)?)
+    }
 }
 

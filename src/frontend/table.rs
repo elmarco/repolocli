@@ -102,5 +102,29 @@ impl Frontend for TableFrontend {
         }
         self.print(table)
     }
+
+    fn list_package_versions(&self, package_name: &str, versions: Vec<String>) -> Result<()> {
+        let mut table = {
+            let mut table = Table::new();
+            let format = format::FormatBuilder::new()
+                .column_separator('|')
+                .borders('|')
+                .separators(
+                    &[format::LinePosition::Title, format::LinePosition::Top, format::LinePosition::Bottom],
+                    format::LineSeparator::new('-', '+', '+', '+')
+                )
+                .padding(1, 1)
+                .build();
+            table.set_format(format);
+            table.set_titles(row!["Name", "Version"]);
+            table
+        };
+
+        for version in versions {
+            table.add_row(row![package_name.to_string(), version]);
+        }
+
+        self.print(table)
+    }
 }
 
