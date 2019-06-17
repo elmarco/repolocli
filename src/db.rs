@@ -14,6 +14,7 @@ pub struct Database(FileDatabase<HashMap<String, Vec<String>>, Yaml>);
 impl Database {
     pub fn open(path: PathBuf) -> Result<Self, Error> {
         FileDatabase::from_path(path, Default::default())
+            .and_then(|fdb| fdb.load().map(|_| fdb))
             .map_err(Error::from)
             .map(Database)
     }
