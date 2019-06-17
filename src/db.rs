@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 use std::collections::HashMap;
+use std::ops::Deref;
 
 use rustbreak::{FileDatabase, deser::Yaml};
 use failure::Error;
+use itertools::Itertools;
 
 use crate::frontend::Frontend;
 use crate::backend::Backend;
@@ -31,34 +33,58 @@ impl Database {
     }
 
     pub fn update(&mut self, commit: bool, backend: &Backend, frontend: &Frontend) -> Result<(), Error> {
-        let new_packages = self.0
-            .read(|data|{
-                data.iter()
-                    .map(|(package_name, known_versions)| {
-                        Database::get_new_packages(package_name, known_versions, backend)
-                    })
-                    .collect::<Vec<Result<Vec<Package>, _>>>() // dangit, this is ugly
-                    .into_iter()
-                    .collect::<Result<Vec<Vec<Package>>, _>>() // uh, oh...
-            })??
+        let package_names : Vec<String> = self.0.read(|data|  {
+            data.keys().cloned().collect()
+        })?;
+
+        debug!("Updating: {:?}", package_names);
+
+        package_names
             .into_iter()
-            .flatten()
-            .collect::<Vec<Package>>();
+            .map(|pkgname| {
+                let known_versions = self.0
+                    .read(|data|{
+                        if let Some(v) = data.get(&pkgname).map(Vec::clone) {
+                            v
+                        } else {
+                            vec![]
+                        }
+                    })?;
+
+                debug!("Known versions for {}: {:?}", pkgname, known_versions);
+
+                let new_upstream_packages : Vec<Package> = backend
+                    .project(&pkgname)?
+                    .into_iter()
+                    .filter(|pkg| !known_versions.contains(pkg.version().deref()))
+                    .collect();
+
+                debug!("Found {} new upstream packages for {}", new_upstream_packages.len(), pkgname);
+
+                if commit {
+                    self.0
+                        .write(|data| {
+                            let mut new_versions = new_upstream_packages
+                                .iter()
+                                .map(|pkg| pkg.version().to_string())
+                                .collect();
+                            data.entry(pkgname).or_insert(vec![])
+                                .append(&mut new_versions);
+                        })?;
+                }
+
+                debug!("Listing...");
+                frontend.list_packages(new_upstream_packages)?;
+
+                Ok(())
+            })
+            .collect::<Result<(), Error>>();
 
         if commit {
-            for pkg in new_packages.iter() {
-                self.0
-                    .write(|mut data| {
-                        data.entry(pkg.name().to_string())
-                            .or_insert(vec![])
-                            .push(pkg.version().to_string());
-                    })?
-            }
-
             let _ = self.0.save().map_err(Error::from)?;
         }
 
-        frontend.list_packages(new_packages)
+        Ok(())
     }
 
     pub fn show(&self, frontend: &Frontend, backend: &Backend) -> Result<(), Error> {
