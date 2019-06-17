@@ -118,7 +118,8 @@ impl Database {
         self.0
             .write(|data| {
                 data.entry(String::from(package_name)).or_insert(vec![]).append(&mut versions)
-            })
-            .map_err(Error::from)
+            })?;
+
+        self.0.save().map_err(Error::from)
     }
 }
