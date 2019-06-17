@@ -13,6 +13,7 @@ pub struct Database(FileDatabase<HashMap<String, Vec<String>>, Yaml>);
 
 impl Database {
     pub fn open(path: PathBuf) -> Result<Self, Error> {
+        debug!("Loading database...");
         FileDatabase::from_path(path, Default::default())
             .and_then(|fdb| fdb.load().map(|_| fdb))
             .map_err(Error::from)
@@ -64,6 +65,7 @@ impl Database {
         let packages = self.0
             .read(|d| d.keys().cloned().collect::<Vec<String>>())?
             .iter()
+            .map(|name| {debug!("Found: {}", name); name})
             .map(|name| backend.project(name))
             .collect::<Vec<Result<_, _>>>() // ugly as
             .into_iter()
@@ -72,13 +74,17 @@ impl Database {
             .flatten()
             .collect();
 
+        debug!("Listing the following packages: {:?}", packages);
+
         frontend.list_packages(packages)
     }
 
     pub fn add_package(&mut self, package_name: &str, backend: &Backend) -> Result<(), Error> {
+        debug!("Adding package: '{}'", package_name);
         let mut versions = backend.project(package_name)?
             .iter()
             .map(|p| p.version().to_string())
+            .unique()
             .collect();
 
         debug!("Adding the following versions for {} to the database: {:?}", package_name, versions);
