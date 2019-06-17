@@ -254,7 +254,7 @@ fn app() -> Result<()> {
 
                 ("show", _mtch) => {
                     // Show all packages from the database
-                    db.show(&*frontend)
+                    db.show(&*frontend, &backend)
                 },
 
                 ("add", Some(mtch)) => {

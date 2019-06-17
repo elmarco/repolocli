@@ -59,8 +59,19 @@ impl Database {
         frontend.list_packages(new_packages)
     }
 
-    pub fn show(&self, frontend: &Frontend) -> Result<(), Error> {
-        unimplemented!()
+    pub fn show(&self, frontend: &Frontend, backend: &Backend) -> Result<(), Error> {
+        let packages = self.0
+            .read(|d| d.keys().cloned().collect::<Vec<String>>())?
+            .iter()
+            .map(|name| backend.project(name))
+            .collect::<Vec<Result<_, _>>>() // ugly as
+            .into_iter()
+            .collect::<Result<Vec<Vec<_>>, _>>()? // hell!
+            .into_iter()
+            .flatten()
+            .collect();
+
+        frontend.list_packages(packages)
     }
 
     pub fn add_package(&mut self, package_name: &str, backend: &Backend) -> Result<(), Error> {
