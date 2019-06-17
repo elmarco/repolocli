@@ -155,10 +155,67 @@ pub fn build_cli<'a>() -> App<'a, 'a> {
             "#)
         )
 
+        .subcommand(SubCommand::with_name("db")
+            .arg(Arg::with_name("db-file")
+                .long("file")
+                .required(false)
+                .multiple(false)
+                .takes_value(true)
+                .help("Use alternative database file")
+                .validator(is_readable_file)
+            )
+            .subcommand(SubCommand::with_name("update")
+                .about("Update the package-version database (by default only list whats new)")
+                .arg(Arg::with_name("update-commit")
+                    .long("commit")
+                    .short("C")
+                    .required(false)
+                    .multiple(false)
+                    .takes_value(false)
+                    .help("Apply the updates to the database")
+                )
+            )
+            .subcommand(SubCommand::with_name("show")
+                .about("Show the package version database")
+            )
+
+            .subcommand(SubCommand::with_name("add")
+                .about("Add a package to the database (by name)")
+                .arg(Arg::with_name("add-pkgname")
+                    .index(1)
+                    .required(true)
+                    .multiple(true)
+                    .takes_value(true)
+                    .help("Add one or more packages by name to the database")
+                )
+            )
+        )
+
         .after_help(r#"
         repolocli can read data from stdin, if you want to postprocess repology.org data you already
         fetched from repology.org/api/v1 via curl (or some other method).
         In this case, repolocli is only a easier-to-use 'jq' (if you don't know jq, look it up NOW!).
         "#)
 
+}
+
+fn is_readable_file(s: String) -> Result<(), String> {
+    use std::fs::OpenOptions;
+    use std::path::PathBuf;
+
+    let path = PathBuf::from(&s);
+
+    if !path.exists() {
+        return Err(format!("'{}' does not exist!", s))
+    }
+
+    if !path.is_file() {
+        return Err(format!("'{}' is not a file!", s))
+    }
+
+    if OpenOptions::new().read(true).write(false).create(false).open(path).is_ok() {
+        Ok(())
+    } else {
+        Err(format!("Cannot open '{}'", s))
+    }
 }
