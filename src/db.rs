@@ -75,6 +75,17 @@ impl Database {
     }
 
     pub fn add_package(&mut self, package_name: &str, backend: &Backend) -> Result<(), Error> {
-        unimplemented!()
+        let mut versions = backend.project(package_name)?
+            .iter()
+            .map(|p| p.version().to_string())
+            .collect();
+
+        debug!("Adding the following versions for {} to the database: {:?}", package_name, versions);
+
+        self.0
+            .write(|data| {
+                data.entry(String::from(package_name)).or_insert(vec![]).append(&mut versions)
+            })
+            .map_err(Error::from)
     }
 }
