@@ -235,6 +235,35 @@ fn app() -> Result<()> {
                 })
                 .map_err(|_| format_err!("Unknown command: {}", other))
         }
+
+        ("db", Some(mtch)) => {
+            let db = mtch.value_of("db-file").unwrap_or_else(|| {
+                unimplemented!() // TODO: Find db file with XDG
+            });
+
+            let db_path = PathBuf::from(db);
+            let mut db = Database::open(db_path)?;
+
+            match mtch.subcommand() {
+                ("update", Some(mtch)) => {
+                    db.update(mtch.is_present("update-commit"), &backend, &*frontend)
+                },
+
+                ("show", _mtch) => {
+                    // Show all packages from the database
+                    db.show(&*frontend)
+                },
+
+                ("add", Some(mtch)) => {
+                    mtch.values_of("add-pkgname")
+                        .unwrap() // safe by clap
+                        .map(|pkgname| db.add_package(pkgname, &backend))
+                        .collect::<Result<()>>()
+                },
+
+                (other, _match) => { panic!("Unknown command: {}", other) }
+            }
+        }
     }
 }
 
