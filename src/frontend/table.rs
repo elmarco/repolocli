@@ -14,7 +14,6 @@ use crate::frontend::Frontend;
 use crate::backend::Backend;
 use crate::compare::ComparePackage;
 use librepology::v1::api::Api;
-use itertools::Itertools;
 
 /// A Frontend that formats the output in a nice ASCII-art table
 pub struct TableFrontend(Stdout);
