@@ -1,5 +1,6 @@
 use std::io::Stdout;
 use std::ops::Deref;
+use std::collections::HashMap;
 
 use librepology::v1::types::Package;
 use librepology::v1::types::Problem;
@@ -7,11 +8,13 @@ use librepology::v1::types::Repo;
 use failure::Fallible as Result;
 use prettytable::format;
 use prettytable::Table;
+use prettytable::Row;
 
 use crate::frontend::Frontend;
 use crate::backend::Backend;
 use crate::compare::ComparePackage;
 use librepology::v1::api::Api;
+use itertools::Itertools;
 
 /// A Frontend that formats the output in a nice ASCII-art table
 pub struct TableFrontend(Stdout);
@@ -85,21 +88,63 @@ impl Frontend for TableFrontend {
     }
 
     fn compare_packages(&self, packages: Vec<ComparePackage>, backend: &Backend, filter_repos: Vec<Repo>) -> Result<()> {
-        let mut table = self.mktable();
-        for package in packages {
-            backend
-                .project(package.name().deref())?
+        let mut ht: HashMap<(String, String), String> = HashMap::new();
+        let mut repos = vec![];
+
+        for package in packages.iter() {
+            let tpls = backend.project(package.name().deref())?
                 .into_iter()
                 .filter(|p| filter_repos.contains(p.repo()))
-                .for_each(|upstream_package| {
-                    table.add_row(row![
-                       package.name().deref().clone(),
-                         package.version().deref().clone(),
-                         upstream_package.repo().deref().clone(),
-                         upstream_package.version().deref().clone(),
-                   ]);
-                });
+                .map(|upstream_package| {
+                    (package.name(),
+                     package.version(),
+                     upstream_package.name().to_string(),
+                     upstream_package.version().to_string(),
+                     upstream_package.repo().to_string())
+                })
+                .map(Ok)
+                .collect::<Result<Vec<_>>>()?;
+
+            for tpl in tpls {
+                ht.insert((tpl.4.to_string(), tpl.2.to_string()), tpl.3.to_string()); // (repo, package) -> version
+                repos.push(tpl.4);
+            }
         }
+
+        repos.sort();
+        repos.dedup();
+
+        let mut table = {
+            let mut table = Table::new();
+            let format = format::FormatBuilder::new()
+                .column_separator('|')
+                .borders('|')
+                .separators(
+                    &[format::LinePosition::Title, format::LinePosition::Top, format::LinePosition::Bottom],
+                    format::LineSeparator::new('-', '+', '+', '+')
+                )
+                .padding(1, 1)
+                .build();
+            table.set_format(format);
+            let mut row = vec![cell!("Package"), cell!("ours")];
+            repos.iter().for_each(|r| row.push(cell!(r)));
+            table.set_titles(Row::new(row));
+            table
+        };
+
+        for p in packages {
+            let mut cells = vec![cell!(p.name()), cell!(p.version())];
+            for repo in repos.iter() {
+                if let Some(version) = ht.get(&(repo.to_string(), p.name().to_string())) {
+                    cells.push(cell!(version))
+                } else {
+                    cells.push(cell!(""))
+                }
+            }
+
+            table.add_row(Row::new(cells));
+        }
+
         self.print(table)
     }
 
