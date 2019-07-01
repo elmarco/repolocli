@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::ops::Deref;
 
 use rustbreak::{FileDatabase, deser::Yaml};
 use failure::Error;
