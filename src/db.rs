@@ -72,7 +72,7 @@ impl Database {
                 let new_package_versions = known_versions.into_iter().collect();
                 frontend.list_package_versions(&pkgname, new_package_versions)
             })
-            .collect::<Result<(), Error>>();
+            .collect::<Result<(), Error>>()?;
 
         if commit {
             let _ = self.0.save().map_err(Error::from)?;
