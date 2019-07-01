@@ -81,7 +81,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn show(&self, frontend: &Frontend, backend: &Backend) -> Result<(), Error> {
+    pub fn show(&self, frontend: &Frontend, _backend: &Backend) -> Result<(), Error> {
         self.0
             .read(|data| {
                 data.iter()
