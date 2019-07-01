@@ -94,7 +94,7 @@ impl Database {
 
     pub fn add_package(&mut self, package_name: &str, backend: &Backend) -> Result<(), Error> {
         debug!("Adding package: '{}'", package_name);
-        let mut versions = backend.project(package_name)?
+        let versions = backend.project(package_name)?
             .iter()
             .map(|p| p.version().to_string())
             .unique()
