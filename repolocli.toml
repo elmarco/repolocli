@@ -1,14 +1,14 @@
 repology_url = "https://repology.org"
 
-# If you do care only about some repositories, you can whitelist them here and repolocli won't print information for
+# If you do care only about some repositories, you can allowlist them here and repolocli won't print information for
 # these repositories.
-whitelist = [
+allowlist = [
     "Debian Stable" # sorry Debianers!
 ]
 
-# If you do not care about some repositories, you can blacklist them here and repolocli won't print information for
+# If you do not care about some repositories, you can denylist them here and repolocli won't print information for
 # these repositories.
-blacklist = [
+denylist = [
     "Arch", # sorry Archers!
     "scientific_7x",
 ]

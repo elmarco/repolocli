@@ -6,11 +6,11 @@ pub struct Configuration {
     #[serde(rename = "repology_url")]
     repology_url: Url,
 
-    #[serde(rename = "whitelist")]
-    whitelist: Vec<String>,
+    #[serde(rename = "allowlist")]
+    allowlist: Vec<String>,
 
-    #[serde(rename = "blacklist")]
-    blacklist: Vec<String>,
+    #[serde(rename = "denylist")]
+    denylist: Vec<String>,
 }
 
 impl Configuration {
@@ -18,12 +18,12 @@ impl Configuration {
         &self.repology_url
     }
 
-    pub fn whitelist(&self) -> &Vec<String> {
-        &self.whitelist
+    pub fn allowlist(&self) -> &Vec<String> {
+        &self.allowlist
     }
 
-    pub fn blacklist(&self) -> &Vec<String> {
-        &self.blacklist
+    pub fn denylist(&self) -> &Vec<String> {
+        &self.denylist
     }
 
 }

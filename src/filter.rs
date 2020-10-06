@@ -5,45 +5,45 @@ use filters::ops::not::Not;
 
 use crate::config::Configuration;
 
-struct BlackListFilter {
+struct DenyListFilter {
     repo_name: String,
 }
 
-impl BlackListFilter {
+impl DenyListFilter {
     pub fn new(repo_name: String) -> Self {
-        BlackListFilter { repo_name }
+        DenyListFilter { repo_name }
     }
 }
 
-impl Filter<String> for BlackListFilter {
+impl Filter<String> for DenyListFilter {
     fn filter(&self, element: &String) -> bool {
         element != self.repo_name
     }
 }
 
-struct WhiteListFilter {
+struct AllowListFilter {
     repo_name: String,
 }
 
-impl Filter<String> for WhiteListFilter {
+impl Filter<String> for AllowListFilter {
     fn filter(&self, element: &String) -> bool {
         element == self.repo_name
     }
 }
 
 pub fn repo_filter(config: &Configuration) -> Box<Filter<String>> {
-    let blacklist = config
-        .blacklist()
+    let denylist = config
+        .denylist()
         .iter()
         .cloned()
-        .map(BlackListFilter::new)
+        .map(DenyListFilter::new)
         .fold(Box::new(Bool::new(true)), |accu, element| accu.and(element));
-    let whitelist = config
-        .whitelist()
+    let allowlist = config
+        .allowlist()
         .iter()
         .cloned()
-        .map(WhiteListFilter::new)
+        .map(AllowListFilter::new)
         .fold(Box::new(Bool::new(true)), |accu, element| accu.and(element));
 
-    Box::new(blacklist.not().or(whitelist))
+    Box::new(denylist.not().or(allowlist))
 }

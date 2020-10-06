@@ -140,27 +140,27 @@ fn app() -> Result<()> {
     debug!("Frontend initialized");
 
     let repository_filter = {
-        let blacklist_filter = |repo: &Repo| -> bool {
-            if config.blacklist().contains(repo) {
-                trace!("In Blacklist: {:?} -> false", repo);
+        let denylist_filter = |repo: &Repo| -> bool {
+            if config.denylist().contains(repo) {
+                trace!("In Denylist: {:?} -> false", repo);
                 return false;
             } else {
-                trace!("Not in Blacklist: {:?} -> true", repo);
+                trace!("Not in Denylist: {:?} -> true", repo);
                 return true;
             }
         };
 
-        let whitelist_filter = |repo: &Repo| -> bool {
-            if config.whitelist().contains(repo) {
-                trace!("In Whitelist: {:?} -> true", repo);
+        let allowlist_filter = |repo: &Repo| -> bool {
+            if config.allowlist().contains(repo) {
+                trace!("In Allowlist: {:?} -> true", repo);
                 return true;
             } else {
-                trace!("Not in Whitelist: {:?} -> false", repo);
+                trace!("Not in Allowlist: {:?} -> false", repo);
                 return false;
             }
         };
 
-        blacklist_filter.or(whitelist_filter)
+        denylist_filter.or(allowlist_filter)
     };
     debug!("Repository filter constructed successfully");
 
